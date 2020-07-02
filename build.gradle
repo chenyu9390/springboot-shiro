@@ -1,0 +1,81 @@
+// buildscript必须在顶部，注意位置
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        // 让spring-boot支持gradle
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:2.1.1.RELEASE")
+    }
+}
+
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.2.5.RELEASE'
+}
+
+group 'net.ck.student'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+apply plugin: 'java'
+apply plugin: "maven"
+apply plugin: 'maven-publish'
+apply plugin: 'idea'
+// 使用spring boot
+apply plugin: "org.springframework.boot"
+// 使用spring boot的自动依赖管理
+apply plugin: 'io.spring.dependency-management'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+/**
+ * 防止控制台乱码
+ */
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web'
+    compileOnly 'org.projectlombok:lombok:1.18.2'
+    annotationProcessor 'org.projectlombok:lombok:1.18.2'
+    compile 'org.apache.shiro:shiro-spring:1.4.2'
+    compile 'org.springframework.boot:spring-boot-starter-data-redis'
+    compile 'org.springframework.boot:spring-boot-starter-aop'
+    compile 'org.springframework.boot:spring-boot-starter-cache'
+    compile 'org.apache.commons:commons-pool2'
+    compile 'org.apache.commons:commons-lang3'
+    compile 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    compile 'com.github.theborakompanioni:thymeleaf-extras-shiro:2.0.0'
+    compile("org.crazycake:shiro-redis:3.2.3"){
+        exclude module: 'redis.clients'
+    }
+}
+/**
+ * 发布到本地仓库：publishToMavenLocal
+ * 发布到远程仓库：publishMavenPublicationToMavenRepository
+ */
+publishing.repositories {
+    maven {
+        credentials {
+            username 'dev'
+            password '1qaz2wsx'
+        }
+        url 'https://dwww.dcpay.vip/nexus/content/repositories/releases/'
+    }
+}
+publishing.publications {
+    mavenJava(MavenPublication) {
+        groupId 'net.ck.student'
+        artifactId 'shiroDemo'
+        version '0.0.1'
+        description '权限树' // 说明描述
+        from components.java
+    }
+}
