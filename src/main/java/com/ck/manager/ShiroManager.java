@@ -30,14 +30,17 @@ public class ShiroManager {
         Optional<List<Map<String,Object>>> optionalMaps = Optional.ofNullable(shiroDao.getPermissionByUserId(userId,2));
         List<PermissionEntity> menuList = new ArrayList<>(optionalMaps.isPresent()?optionalMaps.get().size():0);
         optionalMaps.orElse(Collections.emptyList()).forEach(map -> {
-            PermissionEntity entity = PermissionEntity.builder()
-                    .menuId(StringValueUtil.getValueByMap(map,"MENU_ID",0))
-                    .parentId(StringValueUtil.getValueByMap(map,"PARENT_ID",0))
-                    .menuName(StringValueUtil.getValueByMap(map,"MENU_NAME",""))
-                    .perms(StringValueUtil.getValueByMap(map,"PERMS",""))
-                    .orderNum(StringValueUtil.getValueByMap(map,"ORDER_NUM",0))
-                    .build();
-            menuList.add(entity);
+            String perms = StringValueUtil.getValueByMap(map,"PERMS","");
+            if(!StringValueUtil.isEmpty(perms)){
+                PermissionEntity entity = PermissionEntity.builder()
+                        .menuId(StringValueUtil.getValueByMap(map,"MENU_ID",0))
+                        .parentId(StringValueUtil.getValueByMap(map,"PARENT_ID",0))
+                        .menuName(StringValueUtil.getValueByMap(map,"MENU_NAME",""))
+                        .perms(perms)
+                        .orderNum(StringValueUtil.getValueByMap(map,"ORDER_NUM",0))
+                        .build();
+                menuList.add(entity);
+            }
         });
         return menuList;
     }
@@ -72,14 +75,16 @@ public class ShiroManager {
         Optional<List<Map<String,Object>>> optionalMaps = Optional.ofNullable(shiroDao.getPermissionByUserId(userId,0));
         List<MenuTree> menuList = new ArrayList<>(optionalMaps.isPresent()?optionalMaps.get().size():0);
         optionalMaps.orElse(Collections.emptyList()).forEach(map -> {
+            String perms = StringValueUtil.getValueByMap(map,"PERMS","");
             MenuTree entity = MenuTree.builder()
                     .id(StringValueUtil.getValueByMap(map,"MENU_ID",0))
                     .parentId(StringValueUtil.getValueByMap(map,"PARENT_ID",0))
                     .title(StringValueUtil.getValueByMap(map,"MENU_NAME",""))
-                    .perms(StringValueUtil.getValueByMap(map,"PERMS",""))
+                    .perms(perms)
                     .orderNum(StringValueUtil.getValueByMap(map,"ORDER_NUM",0).intValue())
                     .build();
             menuList.add(entity);
+
         });
         List<MenuTree> parentMenuList = menuList.stream().filter((MenuTree t) -> t.getParentId() == TOP_NODE_ID).collect(Collectors.toList());
         List<MenuTree> chileMenuList = menuList.stream().filter((MenuTree t) -> t.getParentId() != TOP_NODE_ID).collect(Collectors.toList());

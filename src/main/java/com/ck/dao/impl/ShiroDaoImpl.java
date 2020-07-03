@@ -2,12 +2,10 @@ package com.ck.dao.impl;
 
 import com.ck.dao.BaseDao;
 import com.ck.dao.ShiroDao;
-import com.ck.domain.entity.PermissionEntity;
 import com.ck.domain.entity.RoleEntity;
 import com.ck.util.StringValueUtil;
 import org.springframework.stereotype.Repository;
 
-import javax.management.relation.Role;
 import java.util.*;
 
 @Repository
@@ -16,6 +14,7 @@ public class ShiroDaoImpl extends BaseDao implements ShiroDao {
     /**
      * 查询用户菜单栏权限
      * @param userId 用户ID
+     * @param type 0 : 菜单权限 1：按钮权限 2:所有权限
      * @return
      */
     @Override
@@ -27,7 +26,7 @@ public class ShiroDaoImpl extends BaseDao implements ShiroDao {
                         " WHERE ur.USER_ID = ? ";
         List<Object> objects = new ArrayList<>();
         objects.add(userId);
-        if(type == 2){
+        if(type != 2){
             sql += " AND m.TYPE = ? ";
             objects.add(type);
         }
