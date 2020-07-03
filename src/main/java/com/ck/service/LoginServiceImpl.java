@@ -1,48 +1,35 @@
 package com.ck.service;
 
-import com.ck.bean.Permissions;
-import com.ck.bean.Role;
-import com.ck.bean.User;
-import org.springframework.stereotype.Repository;
+import com.ck.domain.entity.UserEntity;
+import com.ck.manager.ShiroManager;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-@Repository
+@Service
 public class LoginServiceImpl implements LoginService {
+
+    @Autowired
+    private ShiroManager shiroManager;
+
+
+
     @Override
-    public User getUserByName(String name) {
-        return getMapByName(name);
+    public UserEntity getUserById(long userId) {
+        UserEntity entity = new UserEntity();
+        entity.setUserId(1L);
+        entity.setUserName("ck");
+        entity.setPassword("123456");
+        entity.setStatus(0);
+        return entity;
     }
 
-    /**
-     * 模拟数据库查询
-     * @param userName
-     * @return
-     */
-    private User getMapByName(String userName){
-        Permissions permissions = new Permissions("1","query");
-        Permissions permissions1 = new Permissions("2","add");
-        Set<Permissions> permissionsSet = new HashSet<>();
-        permissionsSet.add(permissions);
-        permissionsSet.add(permissions1);
-        Role role = new Role("1","admin",permissionsSet);
-        Set<Role> roleSet = new HashSet<>();
-        roleSet.add(role);
-        User user = new User("1","wsl","123456",roleSet);
-        Map<String ,User> map = new HashMap<>();
-        map.put(user.getUserName(), user);
-
-        Permissions permissions3 = new Permissions("3","query");
-        Set<Permissions> permissionsSet1 = new HashSet<>();
-        permissionsSet1.add(permissions3);
-        Role role1 = new Role("2","user",permissionsSet1);
-        Set<Role> roleSet1 = new HashSet<>();
-        roleSet1.add(role1);
-        User user1 = new User("2","zhangsan","123456",roleSet1);
-        map.put(user1.getUserName(), user1);
-        return map.get(userName);
+    @Override
+    public UserEntity getUserByName(String userName) {
+        UserEntity entity = new UserEntity();
+        entity.setUserId(1L);
+        entity.setUserName("ck");
+        entity.setPassword("123456");
+        entity.setStatus(0);
+        return entity;
     }
 }

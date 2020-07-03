@@ -1,6 +1,7 @@
 package com.ck.controller;
 
-import com.ck.bean.User;
+import com.ck.domain.entity.UserEntity;
+import com.ck.service.LoginService;
 import com.ck.shiro.ShiroRealm;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
@@ -20,22 +21,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/login")
 public class LoginController {
 
-    @Autowired
-    private ShiroRealm shiroRealm;
-
-    @RequestMapping(value = "")
-    public String login(User user) {
+    @RequestMapping(value = "",method = RequestMethod.POST)
+    public String login(UserEntity user) {
         //添加用户认证信息
         Subject subject = SecurityUtils.getSubject();
-        UsernamePasswordToken usernamePasswordToken = new UsernamePasswordToken(
-                user.getUserName(),
-                user.getPassword()
-        );
+        UsernamePasswordToken usernamePasswordToken = new UsernamePasswordToken(user.getUserName(),user.getPassword());
         try {
             //进行验证，这里可以捕获异常，然后返回对应信息
             subject.login(usernamePasswordToken);
-//          subject.checkRole("admin");
-//          subject.checkPermissions("query", "add");
+//              subject.checkRole("admin");
+//              subject.checkPermissions("query", "add");
         } catch (AuthenticationException e) {
             e.printStackTrace();
             return "账号或密码错误！";
@@ -45,31 +40,6 @@ public class LoginController {
         }
         return "login success";
     }
-    //注解验角色和权限
-    @RequestMapping("/add")
-    @RequiresPermissions("add")
-    public String index() {
-        return "有add权限通过";
-    }
 
-    //注解验角色和权限
-    @RequestMapping("/query")
-    @RequiresPermissions("query")
-    public String query() {
-        return "有query权限通过";
-    }
-
-
-    /**
-     * 清空当前登录用户的缓存
-     * 一般用户更新用户的角色信息
-     * 此操作会触发doGetAuthorizationInfo方法
-     * @return
-     */
-    @RequestMapping("/clear")
-    public String clear(){
-        shiroRealm.clearCache();
-        return "缓存清除成功";
-    }
 
 }

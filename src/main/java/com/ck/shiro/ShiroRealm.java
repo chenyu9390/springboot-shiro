@@ -1,8 +1,9 @@
 package com.ck.shiro;
 
-import com.ck.bean.Permissions;
-import com.ck.bean.Role;
-import com.ck.bean.User;
+import com.ck.domain.entity.PermissionEntity;
+import com.ck.domain.entity.RoleEntity;
+import com.ck.domain.entity.UserEntity;
+import com.ck.manager.ShiroManager;
 import com.ck.service.LoginService;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
@@ -16,11 +17,15 @@ import org.apache.shiro.subject.PrincipalCollection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class ShiroRealm extends AuthorizingRealm {
 
     @Autowired
     private LoginService loginService;
+    @Autowired
+    private ShiroManager shiroManager;
 
     /**
      * 获取授权信息
@@ -30,18 +35,20 @@ public class ShiroRealm extends AuthorizingRealm {
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principalCollection) {
         //获取登录用户名
-        User us = (User) principalCollection.getPrimaryPrincipal();
+        String userName = (String) principalCollection.getPrimaryPrincipal();
         //根据用户名去数据库查询用户信息
-        User user = loginService.getUserByName(us.getUserName());
+        UserEntity user = loginService.getUserByName(userName);
         //添加角色和权限
         SimpleAuthorizationInfo simpleAuthorizationInfo = new SimpleAuthorizationInfo();
-        for (Role role : user.getRoles()) {
+        List<RoleEntity> roles = shiroManager.getRoleByUserId(user.getUserId());
+        for (RoleEntity role : roles) {
             //添加角色
             simpleAuthorizationInfo.addRole(role.getRoleName());
-            //添加权限
-            for (Permissions permissions : role.getPermissions()) {
-                simpleAuthorizationInfo.addStringPermission(permissions.getPermissionsName());
-            }
+        }
+        List<PermissionEntity> permissionEntityList = shiroManager.getPermissionEntityByUserId(user.getUserId());
+        //添加权限
+        for(PermissionEntity permissionEntity : permissionEntityList){
+            simpleAuthorizationInfo.addStringPermission(permissionEntity.getPerms());
         }
         return simpleAuthorizationInfo;
     }
@@ -59,14 +66,14 @@ public class ShiroRealm extends AuthorizingRealm {
             return null;
         }
         //获取用户信息
-        String name = authenticationToken.getPrincipal().toString();
-        User user = loginService.getUserByName(name);
+        String userName = authenticationToken.getPrincipal().toString();
+        UserEntity user = loginService.getUserByName(userName);
         if (user == null) {
             //这里返回后会报出对应异常
             return null;
         } else {
             //这里验证authenticationToken和simpleAuthenticationInfo的信息
-            SimpleAuthenticationInfo simpleAuthenticationInfo = new SimpleAuthenticationInfo(user, user.getPassword(), getName());
+            SimpleAuthenticationInfo simpleAuthenticationInfo = new SimpleAuthenticationInfo(userName, user.getPassword(), getName());
             return simpleAuthenticationInfo;
         }
     }
