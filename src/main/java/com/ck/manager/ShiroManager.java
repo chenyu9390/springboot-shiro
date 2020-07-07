@@ -2,7 +2,7 @@ package com.ck.manager;
 
 import com.ck.dao.ShiroDao;
 import com.ck.domain.MenuTree;
-import com.ck.domain.entity.PermissionEntity;
+import com.ck.domain.entity.MenuEntity;
 import com.ck.domain.entity.RoleEntity;
 import com.ck.util.JSONUtil;
 import com.ck.util.StringValueUtil;
@@ -26,13 +26,13 @@ public class ShiroManager {
      * @param userId 用户ID
      * @return
      */
-    public List<PermissionEntity> getPermissionEntityByUserId(long userId){
+    public List<MenuEntity> getPermissionEntityByUserId(long userId){
         Optional<List<Map<String,Object>>> optionalMaps = Optional.ofNullable(shiroDao.getPermissionByUserId(userId,2));
-        List<PermissionEntity> menuList = new ArrayList<>(optionalMaps.isPresent()?optionalMaps.get().size():0);
+        List<MenuEntity> menuList = new ArrayList<>(optionalMaps.isPresent()?optionalMaps.get().size():0);
         optionalMaps.orElse(Collections.emptyList()).forEach(map -> {
             String perms = StringValueUtil.getValueByMap(map,"PERMS","");
             if(!StringValueUtil.isEmpty(perms)){
-                PermissionEntity entity = PermissionEntity.builder()
+                MenuEntity entity = MenuEntity.builder()
                         .menuId(StringValueUtil.getValueByMap(map,"MENU_ID",0))
                         .parentId(StringValueUtil.getValueByMap(map,"PARENT_ID",0))
                         .menuName(StringValueUtil.getValueByMap(map,"MENU_NAME",""))
@@ -135,7 +135,7 @@ public class ShiroManager {
      * @param userId 用户ID
      * @param roleIdList  权限列表
      */
-    public void createUserRole(long userId,List<String> roleIdList){
+    public void createUserRole(long userId,List<Long> roleIdList){
         shiroDao.createUserRole(userId,roleIdList);
     }
 
@@ -144,9 +144,87 @@ public class ShiroManager {
      * @param roleId
      * @param permissionIdList 功能集合
      */
-    public void createRolePermission(long roleId,List<String> permissionIdList){
+    public void createRolePermission(long roleId,List<Long> permissionIdList){
         shiroDao.createRolePermission(roleId,permissionIdList);
     }
+
+    /**
+     * 新建角色
+     * @param roleEntities 角色列表
+     * @param createBy 创建人
+     */
+    public List<RoleEntity> createRole(List<RoleEntity> roleEntities, String createBy) {
+        return shiroDao.createRole(roleEntities, createBy);
+    }
+
+    /**
+     * 取消角色
+     * @param roleIdList 角色列表
+     * @param modifyBy 修改人
+     */
+    public void closeRole(List<Long> roleIdList, String modifyBy) {
+        shiroDao.closeRole(roleIdList, modifyBy);
+    }
+
+    public void enableRole(List<Long> roleIdList, String modifyBy){
+        shiroDao.enableRole(roleIdList, modifyBy);
+    }
+
+    /**
+     * 创建权限信息
+     * @param menuEntityList  权限列表
+     * @param createBy  创建人
+     */
+    public List<MenuEntity> createMenu(List<MenuEntity> menuEntityList, String createBy) {
+        return shiroDao.createMenu(menuEntityList,createBy);
+    }
+
+    /**
+     * 关闭权限
+     * @param menuIdList 权限列表
+     * @param modifyBy  修改人
+     */
+    public void closeMenu(List<Long> menuIdList, String modifyBy) {
+        shiroDao.closeMenu(menuIdList, modifyBy);
+    }
+
+    /**
+     * 启用权限
+     * @param menuIdList 权限列表
+     * @param modifyBy  修改人
+     */
+    public void enableMenu(List<Long> menuIdList, String modifyBy) {
+        shiroDao.enableMenu(menuIdList, modifyBy);
+    }
+
+    /**
+     * 删除用户角色
+     * @param userId 用户ID
+     * @param roleIdList    角色ID集合
+     */
+    public void deleteUserRole(long userId,List<Long> roleIdList){
+        shiroDao.deleteUserRole(userId, roleIdList);
+    }
+
+    /**
+     * 删除角色权限ID
+     * @param roleId    角色ID
+     * @param menuIdList    权限ID集合
+     */
+    public void deleteRoleMenu(long roleId,List<Long> menuIdList){
+        shiroDao.deleteRoleMenu(roleId, menuIdList);
+    }
+
+
+
+
+
+
+
+
+
+
+
 
 
     public static void main(String[] args) throws JsonProcessingException {

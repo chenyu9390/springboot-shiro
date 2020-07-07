@@ -2,15 +2,21 @@ package com.ck.config;
 
 import at.pollux.thymeleaf.shiro.dialect.ShiroDialect;
 import com.ck.bean.em.ShiroFilterEnum;
+import com.ck.filter.LogoutAuthorizationFilter;
+import com.ck.filter.ShiroFormAuthenticationFilter;
+import com.ck.filter.loginFormAuthenticationFilter;
 import com.ck.properties.ShiroProperties;
 import com.ck.shiro.ShiroRealm;
 import com.ck.shiro.ShiroSessionListener;
+import com.ck.util.StringValueUtil;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.authc.credential.HashedCredentialsMatcher;
 import org.apache.shiro.authc.credential.SimpleCredentialsMatcher;
 import org.apache.shiro.codec.Base64;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.session.SessionListener;
+import org.apache.shiro.session.mgt.eis.JavaUuidSessionIdGenerator;
 import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.web.mgt.CookieRememberMeManager;
@@ -28,6 +34,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.util.Base64Utils;
 import org.springframework.web.servlet.handler.SimpleMappingExceptionResolver;
 
+import javax.servlet.Filter;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -67,49 +74,35 @@ public class ShiroConfig {
     private RedisCacheManager cacheManager() {
         RedisCacheManager redisCacheManager = new RedisCacheManager();
         redisCacheManager.setRedisManager(redisManager());
+        // 必须要设置主键名称，shiro-redis 插件用过这个缓存用户信息
+        redisCacheManager.setPrincipalIdFieldName("userId");
         return redisCacheManager;
     }
 
-    /**
-     * 权限拦截器
-     *      主要用于管控URL拦截权限。
-     *      分为两个部分:拦截器Map,与 拦截器Map关联映射URL
-     * @param securityManager
-     * @return
-     */
     @Bean
-    public ShiroFilterFactoryBean shiroFilterFactoryBean(SecurityManager securityManager) {
-        ShiroFilterFactoryBean shiroFilterFactoryBean = new ShiroFilterFactoryBean();
-        // 设置 securityManager
-        shiroFilterFactoryBean.setSecurityManager(securityManager);
-        // 登录的 url
-        shiroFilterFactoryBean.setLoginUrl(shiroProperties.getLoginUrl());
+    public ShiroFilterFactoryBean shiroFilter(SecurityManager securityManager) {
+        ShiroFilterFactoryBean shiroFilter = new ShiroFilterFactoryBean();
+        shiroFilter.setSecurityManager(securityManager);
+        Map<String, Filter> filters=new HashMap<>();
+        filters.put("user", new loginFormAuthenticationFilter());
+        filters.put("authc", new ShiroFormAuthenticationFilter());
+        filters.put("logout", new LogoutAuthorizationFilter());
+        shiroFilter.setFilters(filters);
         /**
-         * successUrl配置只是做为一种附加配置，
-         * 只有session中没有用户请求地址时才会使用successUrl。
-         * 系统默认的是认证成功后跳转到上一次请求的路径，如果是首次请求，那shiro就会跳转到默认虚拟路径“/”，也就是跳转到index.jsp。
+         * 权限不足时的跳转，重写filter后可以直接返回错误信息
+         * 路径对应controll中的路径
+         * shiroFilter.setLoginUrl("/shiro/un_auth");
+         * shiroFilter.setUnauthorizedUrl("/shiro/unauthorized");
          */
-        shiroFilterFactoryBean.setSuccessUrl(shiroProperties.getSuccessUrl());
-        /**
-         * 未授权 url,此处设置没有效果，
-         * shiro源代码中判断了filter是否为AuthorizationFilter，只有perms，roles，ssl，rest，port才是属于AuthorizationFilter，
-         * 而anon，authcBasic，auchc，user是AuthenticationFilter，所以unauthorizedUrl设置后不起作用
-         */
-        shiroFilterFactoryBean.setUnauthorizedUrl("/error/403");
-
-        LinkedHashMap<String, String> filterChainDefinitionMap = new LinkedHashMap<>();
-        // 设置免认证 url
-        String[] anonUrls = StringUtils.splitByWholeSeparatorPreserveAllTokens(shiroProperties.getAnonUrl(), ",");
-        for (String url : anonUrls) {
-            filterChainDefinitionMap.put(url, ShiroFilterEnum.ANON.getName());
+        Map<String, String> filterMap = new LinkedHashMap<>();
+        //自定义权限拦截
+        if(ObjectUtils.isNotEmpty(shiroProperties.getFilterMap())){
+            filterMap.putAll(shiroProperties.getFilterMap());
         }
-        // 配置退出过滤器，其中具体的退出代码 Shiro已经替我们实现了
-        filterChainDefinitionMap.put(shiroProperties.getLogoutUrl(), ShiroFilterEnum.LOGOUT.getName());
-        // 除上以外所有 url都必须认证通过才可以访问，未通过认证自动访问 LoginUrl
-        filterChainDefinitionMap.put("/**", ShiroFilterEnum.USER.getName());
-        shiroFilterFactoryBean.setFilterChainDefinitionMap(filterChainDefinitionMap);
-
-        return shiroFilterFactoryBean;
+        filterMap.put("/logout", ShiroFilterEnum.LOGOUT.getName());
+        filterMap.put("/**", "authc");
+        shiroFilter.setFilterChainDefinitionMap(filterMap);
+        return shiroFilter;
     }
 
     /**
@@ -167,7 +160,7 @@ public class ShiroConfig {
         // 设置 cookie 名称，对应 login.html 页面的 <input type="checkbox" name="rememberMe"/>
         SimpleCookie cookie = new SimpleCookie("rememberMe");
         // 设置 cookie 的过期时间，单位为秒，这里为一天
-        cookie.setMaxAge(86400);
+        cookie.setMaxAge(shiroProperties.getCookieTimeout());
         return cookie;
     }
 
@@ -185,13 +178,6 @@ public class ShiroConfig {
         String rememberKey = Base64Utils.encodeToString(Arrays.copyOf(encryptKeyBytes, 16));
         cookieRememberMeManager.setCipherKey(Base64.decode(rememberKey));
         return cookieRememberMeManager;
-    }
-
-    @Bean
-    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(SecurityManager securityManager) {
-        AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor = new AuthorizationAttributeSourceAdvisor();
-        authorizationAttributeSourceAdvisor.setSecurityManager(securityManager);
-        return authorizationAttributeSourceAdvisor;
     }
 
     /**
@@ -222,7 +208,7 @@ public class ShiroConfig {
         Collection<SessionListener> listeners = new ArrayList<>();
         listeners.add(new ShiroSessionListener());
         // 设置 session超时时间
-        sessionManager.setGlobalSessionTimeout(3600 * 1000L);
+        sessionManager.setGlobalSessionTimeout(shiroProperties.getSessionTimeout()*1000L);
         sessionManager.setSessionListeners(listeners);
         sessionManager.setSessionDAO(redisSessionDAO());
         sessionManager.setSessionIdUrlRewritingEnabled(false);
@@ -241,6 +227,26 @@ public class ShiroConfig {
         return advisorAutoProxyCreator;
     }
 
+    @Bean
+    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(SecurityManager securityManager) {
+        AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor = new AuthorizationAttributeSourceAdvisor();
+        authorizationAttributeSourceAdvisor.setSecurityManager(securityManager);
+        return authorizationAttributeSourceAdvisor;
+    }
+
+    /**
+     * Session ID 生成器
+     * create by: ck
+     * @return JavaUuidSessionIdGenerator
+     */
+    @Bean
+    public JavaUuidSessionIdGenerator sessionIdGenerator() {
+        return new JavaUuidSessionIdGenerator();
+    }
+
+
+
+
     /**
      * 未授权跳转url
      * shiro中如果使用注释来注入角色和权限的话，无法抛出UnauthorizedException的异常
@@ -248,7 +254,7 @@ public class ShiroConfig {
      * 如果程序配置了全局异常拦截并捕获了UnauthorizedException,则此处配置无效
      * @return
      */
-    @Bean
+    /*@Bean
     public SimpleMappingExceptionResolver simpleMappingExceptionResolver() {
         SimpleMappingExceptionResolver resolver = new SimpleMappingExceptionResolver();
         Properties properties = new Properties();
@@ -256,5 +262,5 @@ public class ShiroConfig {
         properties.setProperty("org.apache.shiro.authz.UnauthorizedException", shiroProperties.getUnauthorizedUrl());
         resolver.setExceptionMappings(properties);
         return resolver;
-    }
+    }*/
 }

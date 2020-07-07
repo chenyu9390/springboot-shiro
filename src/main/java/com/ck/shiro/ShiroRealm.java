@@ -1,10 +1,11 @@
 package com.ck.shiro;
 
-import com.ck.domain.entity.PermissionEntity;
+import com.ck.domain.entity.MenuEntity;
 import com.ck.domain.entity.RoleEntity;
 import com.ck.domain.entity.UserEntity;
 import com.ck.manager.ShiroManager;
 import com.ck.service.LoginService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationInfo;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
+@Slf4j
 public class ShiroRealm extends AuthorizingRealm {
 
     @Autowired
@@ -45,11 +47,12 @@ public class ShiroRealm extends AuthorizingRealm {
             //添加角色
             simpleAuthorizationInfo.addRole(role.getRoleName());
         }
-        List<PermissionEntity> permissionEntityList = shiroManager.getPermissionEntityByUserId(user.getUserId());
+        List<MenuEntity> permissionEntityList = shiroManager.getPermissionEntityByUserId(user.getUserId());
         //添加权限
-        for(PermissionEntity permissionEntity : permissionEntityList){
+        for(MenuEntity permissionEntity : permissionEntityList){
             simpleAuthorizationInfo.addStringPermission(permissionEntity.getPerms());
         }
+        log.info("获取{}用户权限",userName);
         return simpleAuthorizationInfo;
     }
 
@@ -65,8 +68,10 @@ public class ShiroRealm extends AuthorizingRealm {
         if (authenticationToken.getPrincipal() == null) {
             return null;
         }
+
         //获取用户信息
         String userName = authenticationToken.getPrincipal().toString();
+        log.info("用户{}身份验证通过",userName);
         UserEntity user = loginService.getUserByName(userName);
         if (user == null) {
             //这里返回后会报出对应异常
