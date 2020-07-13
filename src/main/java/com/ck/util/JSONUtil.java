@@ -3,6 +3,8 @@ package com.ck.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+
 public class JSONUtil {
 
     /**
@@ -23,7 +25,7 @@ public class JSONUtil {
      * @return
      * @throws JsonProcessingException
      */
-    public static <T> T readValue(String json, Class<T> t) throws JsonProcessingException {
+    public static <T> T readValue(String json, Class<T> t) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(json, t);
     }

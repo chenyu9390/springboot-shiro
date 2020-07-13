@@ -22,6 +22,7 @@ public class ShiroSessionListener implements SessionListener {
 	 */
 	@Override
 	public void onStart(Session session) {
+		System.out.println("listener:"+session.getId().toString());
 		//会话创建，在线人数加一
 		sessionCount.incrementAndGet();
 	}

@@ -5,7 +5,9 @@ import com.ck.domain.entity.RoleEntity;
 import com.ck.domain.entity.UserEntity;
 import com.ck.manager.ShiroManager;
 import com.ck.service.LoginService;
+import com.ck.util.StringValueUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationInfo;
@@ -13,11 +15,18 @@ import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.SimpleAuthenticationInfo;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.SimpleAuthorizationInfo;
+import org.apache.shiro.mgt.SessionsSecurityManager;
 import org.apache.shiro.realm.AuthorizingRealm;
+import org.apache.shiro.session.Session;
+import org.apache.shiro.session.mgt.DefaultSessionManager;
+import org.apache.shiro.session.mgt.eis.SessionDAO;
 import org.apache.shiro.subject.PrincipalCollection;
+import org.apache.shiro.subject.support.DefaultSubjectContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.List;
 
 @Component
@@ -28,6 +37,9 @@ public class ShiroRealm extends AuthorizingRealm {
     private LoginService loginService;
     @Autowired
     private ShiroManager shiroManager;
+    @Autowired
+    private SessionDAO sessionDAO;
+
 
     /**
      * 获取授权信息
